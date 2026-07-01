@@ -133,7 +133,11 @@ static void initialise_ui(void) {
   s_res_img_standby = gbitmap_create_with_resource(RESOURCE_ID_IMG_STANDBY);
   s_res_img_settings = gbitmap_create_with_resource(RESOURCE_ID_IMG_SETTINGS);
   s_res_roboto_bold_subset_49 = fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49);
+#ifdef PBL_PLATFORM_EMERY
+  s_res_gothic_18_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+#else
   s_res_gothic_18_bold = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+#endif
   // action_layer
   action_layer = action_bar_layer_create();
   action_bar_layer_add_to_window(action_layer, s_window);
