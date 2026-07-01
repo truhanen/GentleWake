@@ -24,7 +24,8 @@
                     "name": "IMAGE_UP_UNSEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 },
@@ -33,7 +34,8 @@
                     "name": "IMAGE_DOWN_SEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 },
@@ -42,7 +44,8 @@
                     "name": "IMAGE_UP_SEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 },
@@ -91,7 +94,8 @@
                     "name": "IMAGE_RIGHT_SEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 },
@@ -108,7 +112,8 @@
                     "name": "IMAGE_RIGHT_UNSEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 },
@@ -125,7 +130,8 @@
                     "name": "IMAGE_DOWN_UNSEL",
                     "targetPlatforms": [
                         "basalt",
-                        "chalk"
+                        "chalk",
+                        "emery"
                     ],
                     "type": "bitmap"
                 }
@@ -136,7 +142,8 @@
             "aplite",
             "basalt",
             "chalk",
-            "diorite"
+            "diorite",
+            "emery"
         ],
         "uuid": "701c1038-920b-49db-90ff-1a6f2c90226e",
         "watchapp": {

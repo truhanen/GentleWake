@@ -17,6 +17,8 @@ static uint8_t s_autoclose_timeout;
 static AppTimer *s_autoclose_timer;
 
 static GBitmap *s_res_img_snooze;
+static GBitmap *s_icon_up;
+static GBitmap *s_icon_down;
 
 static Window *s_window;
 static GBitmap *s_res_img_standby;
@@ -73,13 +75,37 @@ static void draw_clock(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   
 #ifdef PBL_RECT
-  // Cover middle section of action bar to give more room for clock
+  const int16_t top_box_bottom = (bounds.size.h / 2) - 26;
+  const int16_t bottom_box_top = (bounds.size.h / 2) + 26;
+  const int16_t bottom_box_height = bounds.size.h - bottom_box_top;
+  const int16_t middle_height = bottom_box_top - top_box_bottom;
+
+  // Keep white top/bottom button zones and black out the middle.
   graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(bounds.size.w-ACTION_BAR_WIDTH, 8, ACTION_BAR_WIDTH, 50), 0, GCornersAll);
+  if (middle_height > 0) {
+    graphics_fill_rect(ctx, GRect(bounds.size.w - ACTION_BAR_WIDTH, top_box_bottom, ACTION_BAR_WIDTH, middle_height), 0, GCornersAll);
+  }
+
+  // Draw active icons centered in the top/bottom white zones.
+  if (s_icon_up != NULL) {
+    GRect up_bounds = gbitmap_get_bounds(s_icon_up);
+    graphics_draw_bitmap_in_rect(ctx, s_icon_up,
+                                 GRect(bounds.size.w - ACTION_BAR_WIDTH + ((ACTION_BAR_WIDTH - up_bounds.size.w) / 2),
+                                       (top_box_bottom - up_bounds.size.h) / 2,
+                                       up_bounds.size.w, up_bounds.size.h));
+  }
+  if (s_icon_down != NULL) {
+    GRect down_bounds = gbitmap_get_bounds(s_icon_down);
+    graphics_draw_bitmap_in_rect(ctx, s_icon_down,
+                                 GRect(bounds.size.w - ACTION_BAR_WIDTH + ((ACTION_BAR_WIDTH - down_bounds.size.w) / 2),
+                                       bottom_box_top + ((bottom_box_height - down_bounds.size.h) / 2),
+                                       down_bounds.size.w, down_bounds.size.h));
+  }
 #endif
   
   graphics_context_set_text_color(ctx, GColorWhite);
-  graphics_draw_text(ctx, current_time, s_res_roboto_bold_subset_49, bounds, 
+  graphics_draw_text(ctx, current_time, s_res_roboto_bold_subset_49,
+                     GRect(0 - PBL_IF_RECT_ELSE(0, ACTION_BAR_WIDTH/2), (bounds.size.h/2)-32-PBL_IF_ROUND_ELSE(2, 0), bounds.size.w, 65),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
@@ -92,7 +118,17 @@ static void initialise_ui(void) {
   
   Layer *root_layer = NULL;
   GRect bounds; 
+#ifdef PBL_RECT
+  GRect content_bounds;
+  int16_t top_box_bottom;
+  int16_t bottom_box_top;
+#endif
   s_window = window_create_fullscreen(&root_layer, &bounds);
+#ifdef PBL_RECT
+  content_bounds = GRect(2, 0, bounds.size.w - ACTION_BAR_WIDTH - 4, bounds.size.h);
+  top_box_bottom = (bounds.size.h / 2) - 26;
+  bottom_box_top = (bounds.size.h / 2) + 26;
+#endif
   
   s_res_img_standby = gbitmap_create_with_resource(RESOURCE_ID_IMG_STANDBY);
   s_res_img_settings = gbitmap_create_with_resource(RESOURCE_ID_IMG_SETTINGS);
@@ -102,8 +138,11 @@ static void initialise_ui(void) {
   action_layer = action_bar_layer_create();
   action_bar_layer_add_to_window(action_layer, s_window);
   action_bar_layer_set_background_color(action_layer, GColorWhite);
-  action_bar_layer_set_icon(action_layer, BUTTON_ID_UP, s_res_img_standby);
-  action_bar_layer_set_icon(action_layer, BUTTON_ID_DOWN, s_res_img_settings);
+  action_bar_layer_set_icon(action_layer, BUTTON_ID_UP, NULL);
+  action_bar_layer_set_icon(action_layer, BUTTON_ID_SELECT, NULL);
+  action_bar_layer_set_icon(action_layer, BUTTON_ID_DOWN, NULL);
+  s_icon_up = s_res_img_standby;
+  s_icon_down = s_res_img_settings;
 #ifdef PBL_RECT
   layer_set_frame(action_bar_layer_get_layer(action_layer), GRect(bounds.size.w-20, 0, 20, bounds.size.h));
   IF_3(layer_set_bounds(action_bar_layer_get_layer(action_layer), GRect(-6, 0, 31, bounds.size.h)));
@@ -113,16 +152,17 @@ static void initialise_ui(void) {
   
   // clock_layer
   clock_layer = layer_create_with_proc(root_layer, draw_clock,
-                                       GRect(0 - PBL_IF_RECT_ELSE(0, ACTION_BAR_WIDTH/2), (bounds.size.h/2)-32-PBL_IF_ROUND_ELSE(2, 0), bounds.size.w, 65));
+                                       PBL_IF_RECT_ELSE(GRect(0, 0, bounds.size.w, bounds.size.h),
+                                                    GRect(0 - ACTION_BAR_WIDTH/2, (bounds.size.h/2)-34, bounds.size.w, 65)));
   
   // onoff_layer
   onoff_layer = layer_create_with_proc(root_layer, draw_onoff,
-                                      PBL_IF_RECT_ELSE(GRect(2, (bounds.size.h/2)-82, 119, 56),
+                                      PBL_IF_RECT_ELSE(GRect(content_bounds.origin.x, 0, content_bounds.size.w, top_box_bottom),
                                                    GRect(-10, (bounds.size.h/2)-82, bounds.size.w+11, 56)));
   
   // info_layer
   info_layer = layer_create_with_proc(root_layer, draw_info,
-                                     PBL_IF_RECT_ELSE(GRect(2, (bounds.size.h/2)+26, 119, 56),
+                                     PBL_IF_RECT_ELSE(GRect(content_bounds.origin.x, bottom_box_top, content_bounds.size.w, bounds.size.h - bottom_box_top),
                                                  GRect(-10, (bounds.size.h/2)+24, bounds.size.w+11, 56)));
   
 #ifdef PBL_ROUND
@@ -239,12 +279,14 @@ void show_alarm_ui(bool on, bool goob) {
     else
       set_onoff_text("WAKEY! WAKEY!");
     update_info("Click to snooze\n2 clicks to stop ");
-    action_bar_layer_set_icon(action_layer, BUTTON_ID_UP, s_res_img_snooze);
-    action_bar_layer_set_icon(action_layer, BUTTON_ID_DOWN, s_res_img_snooze);
+    s_icon_up = s_res_img_snooze;
+    s_icon_down = s_res_img_snooze;
+    layer_mark_dirty(clock_layer);
   } else {
     update_onoff(s_alarms_on);
-    action_bar_layer_set_icon(action_layer, BUTTON_ID_UP, s_res_img_standby);
-    action_bar_layer_set_icon(action_layer, BUTTON_ID_DOWN, s_res_img_settings);
+    s_icon_up = s_res_img_standby;
+    s_icon_down = s_res_img_settings;
+    layer_mark_dirty(clock_layer);
   }
 }
 
@@ -276,8 +318,9 @@ void show_status(time_t alarm_time, status_enum status) {
   snprintf(info, sizeof(info), "%s: %s\n2 clicks to stop", (status == S_Snoozing ? "Until" : "Alarm"), time_str);
   update_info(info);
   
-  action_bar_layer_set_icon(action_layer, BUTTON_ID_UP, s_res_img_snooze);
-  action_bar_layer_set_icon(action_layer, BUTTON_ID_DOWN, s_res_img_snooze);
+  s_icon_up = s_res_img_snooze;
+  s_icon_down = s_res_img_snooze;
+  layer_mark_dirty(clock_layer);
 }
 
 // Show the main application window

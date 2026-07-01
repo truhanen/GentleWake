@@ -110,23 +110,28 @@ static void draw_code(Layer *layer, GContext *ctx) {
   // Draw border
   graphics_context_set_stroke_color(ctx, GColorWhite);
   GRect layer_rect = layer_get_bounds(layer);
+  const int16_t icon_size = 18;
+  const int16_t icon_gap = 5;
+  const int16_t code_row_width = (icon_size * 5) + (icon_gap * 4);
+  const int16_t code_start_x = (layer_rect.size.w - code_row_width) / 2;
+  const int16_t code_y = layer_rect.size.h - (icon_size + 3);
   graphics_draw_round_rect(ctx, GRect(0, 0, layer_rect.size.w, layer_rect.size.h), 8);
   
   graphics_context_set_text_color(ctx, GColorWhite);
   
   // Draw title
-  graphics_draw_text(ctx, "Random Konami Code", s_res_gothic_24, GRect(1, -5, 119, 49), 
+  graphics_draw_text(ctx, "Random Konami Code", s_res_gothic_24, GRect(1, -5, layer_rect.size.w - 2, 49), 
                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   
   // Draw instructions
-  graphics_draw_text(ctx, "Press the buttons in the order below to stop the alarm", s_res_gothic_14, GRect(3, 44, 114, 43), 
+  graphics_draw_text(ctx, "Press the buttons in the order below to stop the alarm", s_res_gothic_14, GRect(3, 44, layer_rect.size.w - 6, 43), 
                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   
   // Draw codes
   for (uint8_t i = 0; i < 5; i++) {
     GBitmap *img = get_code_img(s_konami_sequence[i], (i < s_current_code), ctx);
     if (img != NULL) {
-      graphics_draw_bitmap_in_rect(ctx, img, GRect(5 + (i * 23), 91, 18, 18));
+      graphics_draw_bitmap_in_rect(ctx, img, GRect(code_start_x + (i * (icon_size + icon_gap)), code_y, icon_size, icon_size));
       gbitmap_destroy(img);
     }
   }
@@ -163,8 +168,9 @@ static void initialise_ui(void) {
   gen_konami_sequence();
   
   // s_layer_code
-  s_layer_code = layer_create_with_proc(root_layer, draw_code, 
-                                       GRect(2+PBL_IF_ROUND_ELSE(25, 0), 50, 120, bounds.size.h-56));
+  s_layer_code = layer_create_with_proc(root_layer, draw_code,
+                                       PBL_IF_RECT_ELSE(GRect(2, 50, bounds.size.w - ACTION_BAR_WIDTH - 4, bounds.size.h - 56),
+                                                    GRect(27, 50, 120, bounds.size.h - 56)));
 }
 
 // Free memory from all the UI elements
@@ -247,4 +253,3 @@ void hide_konamicode(void) {
   cancel_close_timer();
   window_stack_remove(s_window, true);
 }
-
