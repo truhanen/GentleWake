@@ -27,9 +27,23 @@ ifndef PEBBLE_VNC
 		-e 'tell application "System Events" to set frontmost of (first process whose name contains "qemu") to true' &
 endif
 
-# Install the app on the emulator
-.PHONY: install_emulator
-install_emulator:
+# Install the app on emulators
+.PHONY: install_emulator install_emulator_aplite install_emulator_basalt install_emulator_chalk install_emulator_diorite install_emulator_emery
+install_emulator: install_emulator_emery
+
+install_emulator_aplite:
+	pebble install --emulator=aplite $(VNC)
+
+install_emulator_basalt:
+	pebble install --emulator=basalt $(VNC)
+
+install_emulator_chalk:
+	pebble install --emulator=chalk $(VNC)
+
+install_emulator_diorite:
+	pebble install --emulator=diorite $(VNC)
+
+install_emulator_emery:
 	pebble install --emulator=emery $(VNC)
 
 # Install the app on your watch
