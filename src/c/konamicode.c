@@ -124,8 +124,13 @@ static void draw_code(Layer *layer, GContext *ctx) {
                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   
   // Draw instructions
-  graphics_draw_text(ctx, "Press the buttons in the order below to stop the alarm", s_res_gothic_14, GRect(3, 44, layer_rect.size.w - 6, 43), 
+#ifdef PBL_PLATFORM_EMERY
+  graphics_draw_text(ctx, "Press the buttons in the order below to stop the alarm", s_res_gothic_14, GRect(3, 44, layer_rect.size.w - 6, 52),
                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+#else
+  graphics_draw_text(ctx, "Press the buttons in the order below to stop the alarm", s_res_gothic_14, GRect(3, 44, layer_rect.size.w - 6, 43),
+                     GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+#endif
   
   // Draw codes
   for (uint8_t i = 0; i < 5; i++) {
@@ -147,7 +152,11 @@ static void initialise_ui(void) {
   s_res_image_upaction2 = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_UPACTION2);
   s_res_image_downaction2 = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DOWNACTION2);
   s_res_gothic_24 = fonts_get_system_font(FONT_KEY_GOTHIC_24);
+#ifdef PBL_PLATFORM_EMERY
+  s_res_gothic_14 = fonts_get_system_font(FONT_KEY_GOTHIC_18);
+#else
   s_res_gothic_14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+#endif
   
   // s_actionbarlayer
   s_actionbarlayer = actionbar_create(s_window, root_layer, &bounds, s_res_image_upaction2, s_res_img_nextaction, s_res_image_downaction2);
