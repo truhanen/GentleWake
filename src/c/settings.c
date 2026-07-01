@@ -13,7 +13,7 @@
 #define NUM_ALARM_MENU_SECTIONS 1
 
 #define NUM_MAIN_MENU_ALARM_ITEMS 1
-#define NUM_MAIN_MENU_MISC_ITEMS 6
+#define NUM_MAIN_MENU_MISC_ITEMS 7
 #define NUM_MAIN_MENU_SMART_ITEMS 4
 #define NUM_MAIN_MENU_DST_ITEMS 2
 #define NUM_MAIN_MENU_ABOUT_ITEMS 1
@@ -33,6 +33,7 @@
 #define MAIN_MENU_KONAMICODE_ITEM 3
 #define MAIN_MENU_VIBEPATTERN_ITEM 4
 #define MAIN_MENU_AUTOCLOSE_ITEM 5
+#define MAIN_MENU_WEEKSTART_ITEM 6
 
 #define MAIN_MENU_SMARTALARM_ITEM 0
 #define MAIN_MENU_SMARTPERIOD_ITEM 1
@@ -55,6 +56,12 @@ static GFont s_header_font;
   
 static Window *s_window;
 static MenuLayer *settings_layer;
+
+static uint8_t display_day_to_alarm_day(uint8_t display_day) {
+  if (s_settings->week_start_day == WS_Monday)
+    return (display_day + 1) % 7;
+  return display_day;
+}
 
 static void initialise_ui(void) {
   GRect bounds;
@@ -227,7 +234,8 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                 strncpy(alarm_summary, "All Off", sizeof(alarm_summary));
               } else {
                 // Check if alarm times or on/off are mixed
-                for (uint8_t i = 0; i <= 6; i++) {
+                for (uint8_t d = 0; d <= 6; d++) {
+                  uint8_t i = display_day_to_alarm_day(d);
                   if (s_alarms[i].enabled) {
                     if (first_day == -1) {
                       first_day = i;
@@ -242,15 +250,18 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                   strncpy(alarm_summary, "Mixed", sizeof(alarm_summary));
                 } else {
                   // Else get the stretch of enabled alarm times and summarize it
-                  first_day = -1;
-                  for (uint8_t i = 0; i <= 6; i++) {
+                  first_day = -1; // Display day index
+                  for (uint8_t d = 0; d <= 6; d++) {
+                    uint8_t i = display_day_to_alarm_day(d);
                     if (s_alarms[i].enabled && first_day == -1)
-                      first_day = i;
+                      first_day = d;
                     if (first_day != -1 && last_day == -1 && !s_alarms[i].enabled)
-                      last_day = i-1;
+                      last_day = d - 1;
                   }
                   if (last_day == -1)
                     last_day = 6;
+                  first_day = display_day_to_alarm_day(first_day);
+                  last_day = display_day_to_alarm_day(last_day);
                   daynameshort(first_day, first_day_str, sizeof(first_day_str));
                   gen_alarm_str(&s_alarms[first_day], alarm_str, sizeof(alarm_str));
                   if (first_day == last_day)
@@ -321,6 +332,10 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                   break;
               }
               menu_cell_basic_draw(ctx, cell_layer, "Auto Close", autoclose_str, NULL);
+              break;
+            case MAIN_MENU_WEEKSTART_ITEM:
+              menu_cell_basic_draw(ctx, cell_layer, "Week Starts On",
+                                   s_settings->week_start_day == WS_Monday ? "Monday" : "Sunday", NULL);
               break;
           }
           break;
@@ -439,14 +454,16 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
           break;
     
         default:
-          // Set single day alarm
-          dayname(cell_index->row-2, daystr, sizeof(daystr));
-          gen_alarm_str(&s_alarms[cell_index->row-2], alarmtimestr, sizeof(alarmtimestr));
-          if (s_alarms[cell_index->row-2].enabled)
-            snprintf(alarmstr, sizeof(alarmstr), "%s - Hold to turn off", alarmtimestr);
-          else
-            snprintf(alarmstr, sizeof(alarmstr), "%s - Hold to turn on", alarmtimestr);
-          menu_cell_basic_draw(ctx, cell_layer, daystr, alarmstr, NULL);
+          { // Set single day alarm
+            uint8_t alarm_day = display_day_to_alarm_day(cell_index->row - 2);
+            dayname(alarm_day, daystr, sizeof(daystr));
+            gen_alarm_str(&s_alarms[alarm_day], alarmtimestr, sizeof(alarmtimestr));
+            if (s_alarms[alarm_day].enabled)
+              snprintf(alarmstr, sizeof(alarmstr), "%s - Hold to turn off", alarmtimestr);
+            else
+              snprintf(alarmstr, sizeof(alarmstr), "%s - Hold to turn on", alarmtimestr);
+            menu_cell_basic_draw(ctx, cell_layer, daystr, alarmstr, NULL);
+          }
           break;
       }
       break;
@@ -538,6 +555,10 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
               break;
             case MAIN_MENU_AUTOCLOSE_ITEM:
               s_settings->autoclose_timeout = (s_settings->autoclose_timeout + 1) % 11;
+              break;
+            case MAIN_MENU_WEEKSTART_ITEM:
+              s_settings->week_start_day = (s_settings->week_start_day == WS_Monday ? WS_Sunday : WS_Monday);
+              break;
           }
           break;
         
@@ -626,10 +647,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
           break;
         default:
           // Individual day alarms
-          show_alarmtime(cell_index->row-2, 
-                         s_alarms[cell_index->row-2].enabled ? s_alarms[cell_index->row-2].hour : 7, 
-                         s_alarms[cell_index->row-2].enabled ? s_alarms[cell_index->row-2].minute : 0, 
+          {
+            uint8_t alarm_day = display_day_to_alarm_day(cell_index->row - 2);
+            show_alarmtime(alarm_day,
+                         s_alarms[alarm_day].enabled ? s_alarms[alarm_day].hour : 7, 
+                         s_alarms[alarm_day].enabled ? s_alarms[alarm_day].minute : 0, 
                          alarm_set);
+          }
           break;
       }
       break;
@@ -678,12 +702,15 @@ static void menu_longselect_callback(MenuLayer *menu_layer, MenuIndex *cell_inde
           break;
         default:
           // Individual day alarms
-          if (s_alarms[cell_index->row-2].enabled) {
-            s_alarms[cell_index->row-2].enabled = false;
-          } else {
-            s_alarms[cell_index->row-2].enabled = true;
-            s_alarms[cell_index->row-2].hour = 7;
-            s_alarms[cell_index->row-2].minute = 0;
+          {
+            uint8_t alarm_day = display_day_to_alarm_day(cell_index->row - 2);
+            if (s_alarms[alarm_day].enabled) {
+              s_alarms[alarm_day].enabled = false;
+            } else {
+              s_alarms[alarm_day].enabled = true;
+              s_alarms[alarm_day].hour = 7;
+              s_alarms[alarm_day].minute = 0;
+            }
           }
           break;
       }

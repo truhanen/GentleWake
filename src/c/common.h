@@ -56,6 +56,11 @@ typedef enum GooBMode {
   GM_AfterStop = 2
 } GooBMode;
 
+typedef enum WeekStartDay {
+  WS_Sunday = 0,
+  WS_Monday = 1
+} WeekStartDay;
+
 struct Settings_st {
   uint8_t snooze_delay;
   bool dynamic_snooze;
@@ -71,6 +76,7 @@ struct Settings_st {
   uint8_t autoclose_timeout;
   GooBMode goob_mode;
   uint8_t goob_monitor_period;
+  WeekStartDay week_start_day;
 } __attribute__((__packed__));
 
 typedef enum AlarmDay {

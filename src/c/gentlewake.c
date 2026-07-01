@@ -50,7 +50,7 @@
 #define STATE_KEY 51
 #define SETTINGSVER_KEY 99
 
-#define SETTINGS_VER 1
+#define SETTINGS_VER 2
 
 // Accelerometer smoothing constants (Numerator and Denominator - Num. divided by Den. must be less than 1. Higher = smoother, slower. Lower = faster, less smooth)
 // #define FILTER_K_NUM 1
@@ -106,6 +106,23 @@ static uint32_t vibe_segments_goob[3][5] = {{150, 150, 150, 150, 500}, {150, 150
 static AppTimer *s_vibe_timer = NULL;
 
 static struct Settings_st s_settings;
+
+typedef struct Settings_v1_st {
+  uint8_t snooze_delay;
+  bool dynamic_snooze;
+  bool easy_light;
+  bool smart_alarm;
+  uint8_t monitor_period;
+  MoveSensitivty sensitivity;
+  WeekDay dst_check_day;
+  uint8_t dst_check_hour;
+  bool konamic_code_on;
+  VibePatterns vibe_pattern;
+  alarm one_time_alarm;
+  uint8_t autoclose_timeout;
+  GooBMode goob_mode;
+  uint8_t goob_monitor_period;
+} __attribute__((__packed__)) Settings_v1;
 
 static struct State_st {
   uint8_t snooze_count;
@@ -1113,10 +1130,30 @@ static void init(void) {
   
   if (persist_exists(SETTINGS_KEY)) {
     switch (persist_int(SETTINGSVER_KEY, 1)) {
-      case 1:
-      default:
+      case 2:
         persist_read_data(SETTINGS_KEY, &s_settings, sizeof(s_settings));
         break;
+      case 1:
+      default: {
+        Settings_v1 settings_v1;
+        persist_read_data(SETTINGS_KEY, &settings_v1, sizeof(settings_v1));
+        s_settings.snooze_delay = settings_v1.snooze_delay;
+        s_settings.dynamic_snooze = settings_v1.dynamic_snooze;
+        s_settings.easy_light = settings_v1.easy_light;
+        s_settings.smart_alarm = settings_v1.smart_alarm;
+        s_settings.monitor_period = settings_v1.monitor_period;
+        s_settings.sensitivity = settings_v1.sensitivity;
+        s_settings.dst_check_day = settings_v1.dst_check_day;
+        s_settings.dst_check_hour = settings_v1.dst_check_hour;
+        s_settings.konamic_code_on = settings_v1.konamic_code_on;
+        s_settings.vibe_pattern = settings_v1.vibe_pattern;
+        s_settings.one_time_alarm = settings_v1.one_time_alarm;
+        s_settings.autoclose_timeout = settings_v1.autoclose_timeout;
+        s_settings.goob_mode = settings_v1.goob_mode;
+        s_settings.goob_monitor_period = settings_v1.goob_monitor_period;
+        s_settings.week_start_day = WS_Sunday;
+        break;
+      }
     }
   } else {
     s_settings.snooze_delay = persist_int(SNOOZEDELAY_KEY, 9);
@@ -1135,8 +1172,12 @@ static void init(void) {
       s_settings.one_time_alarm.enabled = false;
     s_settings.autoclose_timeout = persist_int(AUTOCLOSETIMEOUT_KEY, 0);
     s_settings.goob_mode = persist_int(GOOBMODE_KEY, GM_Off);
-    s_settings.goob_monitor_period = persist_int(GOOBPERIOD_KEY, 5);  
+    s_settings.goob_monitor_period = persist_int(GOOBPERIOD_KEY, 5);
+    s_settings.week_start_day = WS_Sunday;
   }
+
+  if (s_settings.week_start_day != WS_Sunday && s_settings.week_start_day != WS_Monday)
+    s_settings.week_start_day = WS_Sunday;
    
   // Restore state
   s_alarms_on = persist_bool(ALARMSON_KEY, true);
