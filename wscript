@@ -41,17 +41,33 @@ def build(ctx):
         has_js = False
 
     ctx.load('pebble_sdk')
+    
+    build_worker = os.path.exists('worker_src')
+    binaries = []
+    cached_env = ctx.env
 
-    ctx.pbl_program(source=ctx.path.ant_glob('src/**/*.c'),
-                    target='pebble-app.elf')
+    for platform in ctx.env.TARGET_PLATFORMS:
+        ctx.env = ctx.all_envs[platform]
+        if ctx.env.USE_GROUPS:
+            ctx.set_group(ctx.env.PLATFORM_NAME)
 
-    if os.path.exists('worker_src'):
-        ctx.pbl_worker(source=ctx.path.ant_glob('worker_src/**/*.c'),
-                        target='pebble-worker.elf')
-        ctx.pbl_bundle(elf='pebble-app.elf',
-                        worker_elf='pebble-worker.elf',
-                        js='pebble-js-app.js' if has_js else [])
-    else:
-        ctx.pbl_bundle(elf='pebble-app.elf',
-                       js='pebble-js-app.js' if has_js else [])
+        app_elf = '{}/pebble-app.elf'.format(ctx.env.BUILD_DIR)
+        ctx.pbl_build(source=ctx.path.ant_glob('src/**/*.c'),
+                      target=app_elf,
+                      bin_type='app')
 
+        if build_worker:
+            worker_elf = '{}/pebble-worker.elf'.format(ctx.env.BUILD_DIR)
+            ctx.pbl_build(source=ctx.path.ant_glob('worker_src/**/*.c'),
+                          target=worker_elf,
+                          bin_type='worker')
+            binaries.append({'platform': platform, 'app_elf': app_elf, 'worker_elf': worker_elf})
+        else:
+            binaries.append({'platform': platform, 'app_elf': app_elf})
+
+    ctx.env = cached_env
+    if ctx.env.USE_GROUPS:
+        ctx.set_group('bundle')
+
+    ctx.pbl_bundle(binaries=binaries,
+                   js='pebble-js-app.js' if has_js else [])
