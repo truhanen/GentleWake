@@ -28,8 +28,7 @@ ifndef PEBBLE_VNC
 endif
 
 # Install the app on emulators
-.PHONY: install_emulator install_emulator_aplite install_emulator_basalt install_emulator_chalk install_emulator_diorite install_emulator_emery
-install_emulator: install_emulator_emery
+.PHONY: install_emulator_aplite install_emulator_basalt install_emulator_chalk install_emulator_diorite install_emulator_emery
 
 install_emulator_aplite:
 	pebble install --emulator=aplite $(VNC)
